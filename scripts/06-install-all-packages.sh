@@ -77,11 +77,11 @@ if [ -n "$DESKTOP_PACKAGES" ]; then
 fi
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ 开始安装（这可能需要几分钟...）"
-chroot export DEBIAN_FRONTEND=noninteractive
-chroot export DEBCONF_NONINTERACTIVE_SEEN=true
-chroot export LC_ALL=C.UTF-8
-chroot export LANG=C.UTF-8
-chroot export PYTHONDONTWRITEBYTECODE=1
+chroot rootdir export DEBIAN_FRONTEND=noninteractive
+chroot rootdir export DEBCONF_NONINTERACTIVE_SEEN=true
+chroot rootdir export LC_ALL=C.UTF-8
+chroot rootdir export LANG=C.UTF-8
+chroot rootdir export PYTHONDONTWRITEBYTECODE=1
 chroot rootdir apt-get install -y $ALL_PACKAGES
 if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ 修复 Debian dpkg 错误"
