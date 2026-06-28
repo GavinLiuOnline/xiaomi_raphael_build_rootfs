@@ -19,13 +19,13 @@ system_config() {
       ;;
     "debian-gnome")
       echo "DEBIAN_VERSION=${DEBIAN_VERSION:-trixie}"
-      echo "IMAGE_SIZE=6G"
+      echo "IMAGE_SIZE=8G"
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=gnome"
       ;;
     "debian-phosh")
       echo "DEBIAN_VERSION=${DEBIAN_VERSION:-trixie}"
-      echo "IMAGE_SIZE=6G"
+      echo "IMAGE_SIZE=8G"
       echo "IS_DESKTOP=true"
       echo "DESKTOP_ENV=$2"
       ;;
