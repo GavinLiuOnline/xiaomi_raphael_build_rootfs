@@ -15,8 +15,8 @@ set -e
 #     该服务会把 RF 永久锁 offline 导致无法注册）。
 #     内核 IPA 修复在 patchs/raphael.patch；00161 固件在 firmware-xiaomi-raphael.deb。
 #     移动数据需 qrtr8+ ModemManager（QMAPv4 patch，见 06 安装 + patches/modemmanager/）。
-#   5) NetworkManager + systemd-resolved DNS —— resolv.conf 走 stub，GSM 连上后
-#      自动使用运营商 DNS（勿写死 1.1.1.1，否则 ping 域名失败）。
+#   5) NetworkManager DNS —— dns=none，NM 不接管 /etc/resolv.conf；resolv.conf
+#      由 04 写死公共 DNS（223.5.5.5/114.114.114.114），不跟随运营商下发。
 
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [10b] 📡 配置基带 modem 服务 + 崩溃隔离"
 
@@ -206,25 +206,38 @@ SUBSYSTEM=="remoteproc", ACTION=="add", ATTR{name}=="modem", ATTR{recovery}="dis
 EOF
 
 # ---------------------------------------------------------------------------
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [10b]   └─ DNS: systemd-resolved + NM (GSM 运营商 DNS)"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [10b]   └─ DNS: NM dns=none + 固定公共 DNS"
 install -d rootdir/etc/NetworkManager/conf.d
-install -d rootdir/etc/systemd/resolved.conf.d
 
+# NM 不接管 resolv.conf，保留 04 写死的公共 DNS；否则连上链路后 NM 会用
+# 运营商下发的 DNS 覆盖 resolv.conf，导致解析异常。
 cat > rootdir/etc/NetworkManager/conf.d/raphael-dns.conf << 'EOF'
 [main]
-# Push per-link DNS (incl. GSM bearer) into systemd-resolved.
-dns=systemd-resolved
-systemd-resolved=true
+# Do not let NetworkManager manage /etc/resolv.conf.
+# We pin public DNS in /etc/resolv.conf (see 04-config-network.sh) so that
+# neither the GSM (operator) bearer nor WiFi can override it.
+dns=none
+rc-manager=unmanaged
 EOF
 
+# 重新断言静态 resolv.conf：06 安装 systemd-resolved/ubuntu-desktop 时其 postinst
+# 可能把 /etc/resolv.conf 软链到 stub，这里覆盖回固定公共 DNS（10b 晚于 06）。
+rm -f rootdir/etc/resolv.conf
+cat > rootdir/etc/resolv.conf << 'EOF'
+# 公共 DNS（固定，不随链路变化）。与 04-config-network.sh 保持一致。
+nameserver 223.5.5.5
+nameserver 114.114.114.114
+EOF
+
+# systemd-resolved 仅在被软链到 stub 时才接管 resolv.conf；这里是静态文件，
+# 它不会改写。禁用其 stub 监听以免与静态配置混淆。
+install -d rootdir/etc/systemd/resolved.conf.d
 cat > rootdir/etc/systemd/resolved.conf.d/raphael.conf << 'EOF'
 [Resolve]
-# Fallback when no interface provides DNS (e.g. USB debug only).
-FallbackDNS=114.114.114.114 223.5.5.5
-DNSStubListener=yes
+DNS=223.5.5.5 114.114.114.114
+FallbackDNS=
+DNSStubListener=no
 EOF
-
-chroot rootdir systemctl enable systemd-resolved.service
 
 # ---------------------------------------------------------------------------
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] [10b]   └─ 启用服务"

@@ -195,29 +195,26 @@ if [ -f "alsa-xiaomi-raphael.deb" ]; then
 fi
 
 # ================================================================
-# 音频：所有系统统一使用 PulseAudio（替代 PipeWire）
+# 音频：统一使用 PipeWire（Ubuntu 24.04 Noble 的默认音频栈）
+# ----------------------------------------------------------------
+# 切勿用 PulseAudio 去“替换” PipeWire！pipewire-pulse / pipewire-audio
+# 是 ubuntu-desktop / gnome-shell / gdm3 的硬依赖，purge 它们再 autoremove
+# 会级联卸载整个 GNOME 桌面，导致开机黑屏（实测踩过坑）。
+# PipeWire 自带 pipewire-pulse 提供 PulseAudio 兼容层，应用无需改动。
 # ================================================================
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ 配置 PulseAudio 作为音频服务（替换 PipeWire）"
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ 配置 PipeWire 作为音频服务"
 
-# 安装 PulseAudio（与 pipewire-pulse 冲突，安装时会自动移除其 pulse 兼容层）
-chroot rootdir apt-get install -y pulseaudio pulseaudio-utils \
-    || chroot rootdir apt-get install -y pulseaudio
+# 确保 PipeWire 全套及兼容层安装齐全（不卸载任何东西）
+chroot rootdir apt-get install -y --no-install-recommends \
+    pipewire pipewire-pulse pipewire-audio pipewire-alsa wireplumber \
+    2>/dev/null || true
 
-# 移除 PipeWire 的 PulseAudio/会话管理组件，避免抢占音频服务
-chroot rootdir apt-get purge -y \
-    pipewire-pulse wireplumber pipewire-media-session 2>/dev/null || true
-chroot rootdir apt-get autoremove -y 2>/dev/null || true
-
-# 屏蔽 PipeWire 用户服务（即便仍被桌面依赖安装也不自启）
-for unit in pipewire.socket pipewire-pulse.socket pipewire.service \
-            pipewire-pulse.service wireplumber.service \
-            pipewire-media-session.service; do
-    chroot rootdir systemctl --global mask "$unit" 2>/dev/null || true
-done
-
-# 启用 PulseAudio 用户服务
-chroot rootdir systemctl --global unmask pulseaudio.service pulseaudio.socket 2>/dev/null || true
-chroot rootdir systemctl --global enable pulseaudio.service pulseaudio.socket 2>/dev/null || true
+# 解除任何历史遗留的屏蔽，并启用 PipeWire 用户服务
+chroot rootdir systemctl --global unmask \
+    pipewire.socket pipewire-pulse.socket pipewire.service \
+    pipewire-pulse.service wireplumber.service 2>/dev/null || true
+chroot rootdir systemctl --global enable \
+    pipewire.socket pipewire-pulse.socket wireplumber.service 2>/dev/null || true
 
 if [[ "$SYSTEM_TYPE" != *"server"* ]]; then
     if [[ "$DESKTOP_ENV" == phosh* ]]; then
