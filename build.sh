@@ -106,9 +106,17 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 
 "$SCRIPT_DIR/scripts/16-finalize.sh"
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 🎉 构建完成 🎉 =========================================="
 
+# 打包 Recovery 卡刷包: boot(内核)->cache.img, rootfs->system.img, 结合 pack/ 模板
+export PACK_SRC="$SCRIPT_DIR/pack"
+export FLASHABLE_ZIP="${FLASHABLE_ZIP:-flashable-${SYSTEM_TYPE}-${KERNEL_VERSION}.zip}"
+echo ""
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 📦 打包卡刷包 =========================================="
+"$SCRIPT_DIR/scripts/17-pack-flashable.sh"
+
 echo ""
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] 📦 产物文件:"
 ls -lh rootfs.img 2>/dev/null || true
 ls -lh rootfs.7z 2>/dev/null || true
+ls -lh "$FLASHABLE_ZIP" 2>/dev/null || true
 echo ""
 echo "[$(date +'%Y-%m-%d %H:%M:%S')] ✅ 构建成功完成!"

@@ -1,1 +1,9 @@
 rootdir/**
+
+# 构建产物
+rootfs.img
+*.7z
+flashable-*.zip
+.pack-build/
+xiaomi-k20pro-boot.img
+xiaomi-raphael-debs_*/

@@ -195,6 +195,13 @@ jobs:
       - name: 安装构建工具
         run: |
           echo "[$(date +'%Y-%m-%d %H:%M:%S')] 检查并安装构建工具: ${{ env.BOOTSTRAP_TOOL }}"
+
+          # 卡刷包打包需要 zip
+          if ! command -v zip &> /dev/null; then
+            echo "[$(date +'%Y-%m-%d %H:%M:%S')]   安装 zip..."
+            sudo apt-get update
+            sudo apt-get install -y zip
+          fi
           
           if [ "${{ env.BOOTSTRAP_TOOL }}" = "mmdebstrap" ]; then
             if ! command -v mmdebstrap &> /dev/null; then
@@ -273,38 +280,47 @@ jobs:
 
           sudo BOOTSTRAP_TOOL="${{ env.BOOTSTRAP_TOOL }}" DEBIAN_VERSION="${{ env.DEBIAN_VERSION }}" UBUNTU_VERSION="${{ env.UBUNTU_VERSION }}" ./build.sh "${{ env.SYSTEM_TYPE }}" "${{ env.KERNEL_VERSION }}" "${{ env.DESKTOP_ENV }}" "${{ env.DEBIAN_VERSION || env.UBUNTU_VERSION }}"
 
-      - name: 生成产物文件名和校验和
+      - name: 生成卡刷包文件名和校验和
         id: artifacts
         run: |
           # 构建产物标识名
           OS_VER="${{ env.DEBIAN_VERSION || env.UBUNTU_VERSION }}"
           FILENAME="rootfs-${{ env.SYSTEM_TYPE }}-${{ env.KERNEL_VERSION }}-${OS_VER}"
           [[ "${{ env.SYSTEM_TYPE }}" == *"phosh"* ]] && FILENAME="${FILENAME}-${{ env.DESKTOP_ENV }}"
-          
+
           echo "filename=${FILENAME}" >> $GITHUB_OUTPUT
           echo "artifact_name=${FILENAME}" >> $GITHUB_OUTPUT
-          
-          # 生成校验和文件
-          sha256sum rootfs.img xiaomi-k20pro-boot.img > ${FILENAME}.sha256
-          cat ${FILENAME}.sha256
-          
-          # 记录文件大小
-          ROOTFS_SIZE=$(stat -c%s rootfs.img)
-          echo "rootfs_size=${ROOTFS_SIZE}" >> $GITHUB_OUTPUT
 
-      - name: 压缩镜像
-        run: |
-          FILENAME="${{ steps.artifacts.outputs.filename }}"
-          echo "压缩为 ${FILENAME}.7z ..."
-          7z a "${FILENAME}.7z" rootfs.img xiaomi-k20pro-boot.img
-          ls -lh "${FILENAME}.7z"
+          # build.sh 已生成卡刷包 (boot->cache.img, rootfs->system.img, 结合 pack/ 模板)
+          SRC_ZIP="flashable-${{ env.SYSTEM_TYPE }}-${{ env.KERNEL_VERSION }}.zip"
+          if [ ! -f "$SRC_ZIP" ]; then
+            SRC_ZIP=$(ls flashable-*.zip 2>/dev/null | head -n1)
+          fi
+          if [ -z "$SRC_ZIP" ] || [ ! -f "$SRC_ZIP" ]; then
+            echo "错误: 未找到 build.sh 生成的卡刷包"
+            ls -lh *.zip 2>/dev/null || true
+            exit 1
+          fi
+
+          # 统一重命名为发布用名称
+          mv "$SRC_ZIP" "${FILENAME}.zip"
+          echo "卡刷包: ${FILENAME}.zip"
+
+          # 生成校验和文件
+          sha256sum "${FILENAME}.zip" > ${FILENAME}.sha256
+          cat ${FILENAME}.sha256
+
+          # 记录文件大小
+          ZIP_SIZE=$(stat -c%s "${FILENAME}.zip")
+          echo "zip_size=${ZIP_SIZE}" >> $GITHUB_OUTPUT
+          ls -lh "${FILENAME}.zip"
 
       - name: 上传产物到 Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifacts.outputs.artifact_name }}
           path: |
-            ${{ steps.artifacts.outputs.filename }}.7z
+            ${{ steps.artifacts.outputs.filename }}.zip
             ${{ steps.artifacts.outputs.filename }}.sha256
           retention-days: 7
 
@@ -380,18 +396,18 @@ jobs:
           SHA256_LIST=""
           MERGE_INSTRUCTIONS=""
           
-          # 遍历所有产物
+          # 遍历所有产物 (卡刷包 .zip)
           for artifact_dir in ${ARTIFACTS_DIR}/rootfs-*/; do
             [ -d "$artifact_dir" ] || continue
             
-            for file in "${artifact_dir}"*.7z; do
+            for file in "${artifact_dir}"*.zip; do
               [ -f "$file" ] || continue
               
               filename=$(basename "$file")
               filesize=$(stat -c%s "$file")
               
               # 解析文件名信息
-              IFS='-' read -ra PARTS <<< "${filename%.7z}"
+              IFS='-' read -ra PARTS <<< "${filename%.zip}"
               SYSTEM_TYPE="${PARTS[1]}"
               KERNEL_VER="${PARTS[2]}"
               OS_VER="${PARTS[3]}"
@@ -468,18 +484,22 @@ jobs:
           
           {
             echo "body<<EOF"
-            echo "## 小米 Raphael (K20 Pro) 系统镜像集合"
+            echo "## 小米 Raphael (K20 Pro) 系统卡刷包集合"
             echo ""
             echo "> 自动构建版本 - ${TIMESTAMP}"
             echo ""
-            echo "### 📦 镜像列表"
-            echo "| 文件名 | 系统类型 | 内核版本 | 系统版本 |"
-            echo "|--------|----------|----------|----------|"
+            echo "### 📦 卡刷包列表"
             echo "$FILE_LIST"
+            echo ""
+            echo "### 📲 刷机说明 (Recovery 卡刷)"
+            echo "卡刷包内已整合: u-boot (boot 分区)、内核 (cache 分区, cache.img)、根文件系统 (userdata 分区, system.img)、logo。"
+            echo "1. 进入第三方 Recovery (如 TWRP/OrangeFox)"
+            echo "2. 选择「安装」，刷入下载的 \`.zip\` 卡刷包"
+            echo "3. 刷入完成后重启设备"
             echo ""
             if [ -n "$MERGE_INSTRUCTIONS" ]; then
               echo "### 🔗 大文件合并说明"
-              echo "以下文件因超过 GitHub Release 单文件 2GB 限制，已自动拆分为多个分卷。请下载所有分卷后执行合并命令："
+              echo "以下卡刷包因超过 GitHub Release 单文件 2GB 限制，已自动拆分为多个分卷。请下载所有分卷后执行合并命令，再进行卡刷："
               echo "$MERGE_INSTRUCTIONS"
               echo ""
             fi
@@ -511,7 +531,7 @@ jobs:
           body: ${{ steps.description.outputs.body }}
           draft: false
           prerelease: false
-          files: release-files/*        # 修改：上传所有文件（包括 .7z 和 .part*）
+          files: release-files/*        # 上传所有文件（卡刷包 .zip 及拆分分卷 .part*）
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # ==================== 修改结束 ====================

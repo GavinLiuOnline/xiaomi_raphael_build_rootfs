@@ -190,17 +190,17 @@ install_dependencies() {
     local pkgs=()
     case "$PKG_MANAGER" in
         apt-get)
-            pkgs=(curl wget p7zip-full sudo)
+            pkgs=(curl wget p7zip-full zip sudo)
             [ "$BOOTSTRAP_TOOL" = "mmdebstrap" ] && pkgs+=(mmdebstrap) || pkgs+=(debootstrap)
             [ "$NEED_QEMU" = true ] && pkgs+=(qemu-user-static binfmt-support)
             ;;
         dnf)
-            pkgs=(curl wget p7zip sudo)
+            pkgs=(curl wget p7zip zip sudo)
             [ "$BOOTSTRAP_TOOL" = "mmdebstrap" ] && pkgs+=(mmdebstrap) || pkgs+=(debootstrap)
             [ "$NEED_QEMU" = true ] && pkgs+=(qemu-user-static)
             ;;
         pacman)
-            pkgs=(curl wget p7zip sudo)
+            pkgs=(curl wget p7zip zip sudo)
             [ "$BOOTSTRAP_TOOL" = "mmdebstrap" ] && pkgs+=(mmdebstrap) || pkgs+=(debootstrap)
             [ "$NEED_QEMU" = true ] && pkgs+=(qemu-user-static binfmt-qemu-static)
             ;;
