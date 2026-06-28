@@ -20,12 +20,7 @@ curl -sL -o xiaomi-raphael-debs_$KERNEL_VERSION/linux-headers-xiaomi-raphael.deb
 curl -sL -o xiaomi-raphael-debs_$KERNEL_VERSION/firmware-xiaomi-raphael.deb \
     "https://github.com/$REPO/releases/download/kernel-v$KERNEL_VERSION/firmware-xiaomi-raphael.deb"
 
-echo "正在下载 boot.img..."
-curl -sL -o xiaomi-k20pro-boot.img \
-    "https://github.com/GengWei1997/kernel-deb/releases/download/v1.0.0/xiaomi-k20pro-boot.img"
-
 echo ""
 echo "下载完成!"
 echo ""
 ls -lh xiaomi-raphael-debs_$KERNEL_VERSION/
-ls -lh xiaomi-k20pro-boot.img
