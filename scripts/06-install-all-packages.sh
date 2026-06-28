@@ -183,6 +183,31 @@ if [ -f "alsa-xiaomi-raphael.deb" ]; then
     rm rootdir/tmp/alsa-xiaomi-raphael.deb
 fi
 
+# ================================================================
+# 音频：所有系统统一使用 PulseAudio（替代 PipeWire）
+# ================================================================
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ 配置 PulseAudio 作为音频服务（替换 PipeWire）"
+
+# 安装 PulseAudio（与 pipewire-pulse 冲突，安装时会自动移除其 pulse 兼容层）
+chroot rootdir apt-get install -y pulseaudio pulseaudio-utils \
+    || chroot rootdir apt-get install -y pulseaudio
+
+# 移除 PipeWire 的 PulseAudio/会话管理组件，避免抢占音频服务
+chroot rootdir apt-get purge -y \
+    pipewire-pulse wireplumber pipewire-media-session 2>/dev/null || true
+chroot rootdir apt-get autoremove -y 2>/dev/null || true
+
+# 屏蔽 PipeWire 用户服务（即便仍被桌面依赖安装也不自启）
+for unit in pipewire.socket pipewire-pulse.socket pipewire.service \
+            pipewire-pulse.service wireplumber.service \
+            pipewire-media-session.service; do
+    chroot rootdir systemctl --global mask "$unit" 2>/dev/null || true
+done
+
+# 启用 PulseAudio 用户服务
+chroot rootdir systemctl --global unmask pulseaudio.service pulseaudio.socket 2>/dev/null || true
+chroot rootdir systemctl --global enable pulseaudio.service pulseaudio.socket 2>/dev/null || true
+
 if [[ "$SYSTEM_TYPE" != *"server"* ]]; then
     if [[ "$DESKTOP_ENV" == phosh* ]]; then
         echo "[$(date +'%Y-%m-%d %H:%M:%S')] [06]   └─ 启用 Phosh 服务"
