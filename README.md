@@ -198,11 +198,48 @@ fastboot flash userdata rootfs.img
 fastboot reboot
 ```
 
+### Recovery 卡刷（`.zip` 卡刷包）
+
+Release 里发布的 `.zip` 卡刷包已整合 u-boot(boot)、内核(cache.img)、根文件系统(system.img) 和 logo，可在第三方 Recovery（TWRP/OrangeFox）中一次刷入，无需逐个 fastboot。
+
+**第一步：合并分卷（仅当卡刷包被拆分为 `*.partXX` 时）**
+
+超过 GitHub Release 单文件 2GB 限制的卡刷包会被拆分成 `xxx.zip.part00`、`xxx.zip.part01` … 必须下载**同一个包的全部分卷**、放在同一目录里合并成完整 `.zip` 后才能刷入：
+
+```bash
+# Linux / macOS：按顺序合并所有分卷
+cat 文件名.zip.part* > 文件名.zip
+# 校验：输出应与 Release 页面给出的 SHA256 一致
+sha256sum 文件名.zip
+```
+
+```bat
+:: Windows (CMD)：按顺序拼接
+copy /b 文件名.zip.part00 + 文件名.zip.part01 + 文件名.zip.part02 文件名.zip
+```
+
+> 未被拆分的卡刷包直接用，跳过此步。合并后 SHA256 对不上说明分卷不全或下载损坏，重新下载，切勿刷入。
+
+**第二步：刷入卡刷包（任选一种）**
+
+先让设备进入第三方 Recovery，然后：
+
+- **方式 A — adb sideload（推荐，不占用手机存储）**
+
+```bash
+# 在 Recovery 中进入「高级」→「ADB Sideload」并滑动开始，然后在电脑执行：
+adb sideload 文件名.zip
+```
+
+- **方式 B — Recovery 本地安装**：将完整 `.zip` 拷到设备，在 Recovery「安装」中选中该 `.zip` 滑动确认。
+
+> ⚠️ **不要把卡刷包放在「内置存储」里刷入！** 卡刷会写入并格式化 userdata（内置存储），放在内置存储上的包会在刷入过程中被清除而导致失败。请使用 **外置 SD 卡** 存放卡刷包，或使用 **adb sideload**（从电脑传入，不占用内置存储）。
+
 ## ❓ 常见问题 FAQ
 
 - **开机卡死 / 插卡死机**：已修复。匹配固件（00161）+ 内核 IPA 数据面修复 + modem 崩溃隔离后，插卡开机不再死机。若仍异常，请确认刷的是最新镜像。
 
-- **移动数据连上但 ping 域名失败（IP 能通）**：DNS 问题。新镜像已用 systemd-resolved 按链路下发运营商 DNS；旧镜像可手动 `sudo nmcli connection up <连接名>` 重连或检查 `/etc/resolv.conf`。
+- **移动数据连上但 ping 域名失败（IP 能通）**：DNS 问题。新镜像已固定使用公共 DNS（`223.5.5.5` / `114.114.114.114`），不跟随运营商下发，`/etc/resolv.conf` 为静态文件、NetworkManager 不再接管（`dns=none`）。旧镜像可手动把这两个 nameserver 写入 `/etc/resolv.conf`。
 
 - **Windows 无法连接设备 CDC NCM 驱动**：参考解决方案视频[BV1tW4y1A79V](https://www.bilibili.com/video/BV1tW4y1A79V/)
 
