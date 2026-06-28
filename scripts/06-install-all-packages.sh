@@ -28,7 +28,7 @@ elif [[ "$SYSTEM_TYPE" == *"ubuntu-"* ]]; then
 	if [[ "$SYSTEM_TYPE" == *"server"* ]]; then
 		BASE_PACKAGES="bash-completion sudo apt-utils ssh openssh-server nano network-manager net-tools initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2 zram-tools udev dbus kmod ca-certificates wireless-regdb"
 	else
-		BASE_PACKAGES="bash-completion sudo apt-utils ssh openssh-server nano network-manager net-tools grub-efi-arm64-signed initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2 zram-tools udev dbus kmod ca-certificates wireless-regdb"
+		BASE_PACKAGES="bash-completion sudo apt-utils ssh openssh-server nano network-manager firefox net-tools grub-efi-arm64-signed initramfs-tools chrony curl wget locales tzdata dnsmasq iptables iproute2 zram-tools udev dbus kmod ca-certificates wireless-regdb"
 	fi
 fi
 
@@ -159,7 +159,6 @@ chroot rootdir sh -c "apt-get remove -y --allow-remove-essential \
 
 install_qcom_local_debs "$DEB_OUT_DIR"
 
-chroot rootdir snap install firefox
 
 # 修改服务配置
 if [[ "$SYSTEM_TYPE" == *"debian-"* ]]; then
