@@ -101,6 +101,7 @@ echo "[$(date +'%Y-%m-%d %H:%M:%S')] ========================================== 
 "$SCRIPT_DIR/scripts/11-config-fstab.sh"
 "$SCRIPT_DIR/scripts/12-create-users.sh"
 "$SCRIPT_DIR/scripts/13-config-power.sh"
+"$SCRIPT_DIR/scripts/13b-config-power-key.sh"
 "$SCRIPT_DIR/scripts/14-config-zram.sh"
 "$SCRIPT_DIR/scripts/15-cleanup.sh"
 "$SCRIPT_DIR/scripts/16-finalize.sh"

@@ -62,6 +62,10 @@ echo "[/etc/dnsmasq.d/usb-ncm.conf]"
 cat rootdir/etc/dnsmasq.d/usb-ncm.conf 2>/dev/null || echo "(文件不存在)"
 
 echo ""
+echo "[/etc/systemd/system/raphael-power-key.service]"
+cat rootdir/etc/systemd/system/raphael-power-key.service 2>/dev/null || echo "(文件不存在)"
+
+echo ""
 echo "[/etc/fstab]"
 cat rootdir/etc/fstab 2>/dev/null || echo "(文件不存在)"
 

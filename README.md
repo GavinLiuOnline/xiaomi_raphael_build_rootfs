@@ -138,7 +138,7 @@ ping -4 -c 3 www.baidu.com
 - 内置 SSH 服务，支持 root / 普通用户远程登录；支持 USB NCM 网络共享
 - **蜂窝基带开箱可用**：匹配 modem 固件（00161）+ 内核 IPA 数据面修复 + SIM 开机自动初始化 + QRTR 版 ModemManager（QMAPv4）
 - 音频：预装 **`alsa-xiaomi-raphael`**（K20 专属 UCM 声卡路由，出声正常的关键）；低版本（jammy 等）默认 **PulseAudio**，高版本（noble 等）使用 **PipeWire + soft-mixer 修复**（解决扬声器音量极小问题）
-- 桌面版提供 GNOME / Phosh 双环境；服务器版开机 15 秒自动熄屏，自定义快捷命令 `leijun`（关屏）/ `jinfan`（点亮）
+- 桌面版提供 GNOME / Phosh 双环境；**GNOME 桌面电源键**：短按熄/亮屏，长按 3 秒弹出系统关机菜单；服务器版开机 15 秒自动熄屏，自定义快捷命令 `leijun`（关屏）/ `jinfan`（点亮）
 
 ---
 
@@ -208,7 +208,6 @@ sudo bash -c "$(curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/
 
 ## 5. 已知问题
 
-- **GNOME 桌面电源键无法息屏**：后续版本持续修复。
 - **大体积镜像不直接发 Release**：部分 `ubuntu-gnome` 镜像超过 2GB，会被拆分为分卷，或仅保留在 Actions Artifacts。
 - **移动数据 ping 域名失败（旧镜像）**：旧镜像 DNS 跟随运营商下发可能不可达；新镜像已固定公共 DNS。旧镜像可手动把 `nameserver 223.5.5.5` / `nameserver 114.114.114.114` 写入 `/etc/resolv.conf`。
 - **扬声器音量极小（旧 noble 镜像）**：TFA9874 扬声器无 ALSA 硬件音量控件，PipeWire 默认走 HW mixer 路径会几乎无声。新镜像已注入 WirePlumber `api.alsa.soft-mixer = true` 修复；旧镜像可手动创建 `/etc/wireplumber/wireplumber.conf.d/50-raphael-soft-mixer.conf` 并 `systemctl --user restart wireplumber`。
