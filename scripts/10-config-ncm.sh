@@ -74,10 +74,33 @@ if [ ! -d "$G" ]; then
 	mkdir -p $G/functions/ncm.usb0
 	ln -sf $G/functions/ncm.usb0 $G/configs/c.1/
 fi
-UDC=$(ls /sys/class/udc | head -n 1)
-if [ -n "$UDC" ] && [ ! -s "$G/UDC" ]; then
-	echo $UDC > $G/UDC
+
+# 等待 UDC 就绪（开机时 dwc3 可能尚未注册）
+i=0
+UDC=
+while [ $i -lt 30 ]; do
+	UDC=$(ls /sys/class/udc 2>/dev/null | head -n 1)
+	[ -n "$UDC" ] && break
+	i=$((i + 1))
+	sleep 1
+done
+[ -n "$UDC" ] || { echo "setup-usb-ncm: no UDC found" >&2; exit 1; }
+
+# UDC 文件可能只有换行符，不能仅用 -s 判断是否已绑定
+current=$(tr -d '\n' < "$G/UDC" 2>/dev/null || true)
+if [ "$current" != "$UDC" ]; then
+	[ -n "$current" ] && echo > "$G/UDC" 2>/dev/null || true
+	echo "$UDC" > "$G/UDC"
 fi
+
+# 等待 usb0 网卡出现
+i=0
+while [ $i -lt 10 ]; do
+	ip link show usb0 >/dev/null 2>&1 && break
+	i=$((i + 1))
+	sleep 0.5
+done
+
 nmcli device set usb0 managed yes 2>/dev/null || true
 nmcli connection up USB-NCM 2>/dev/null || true
 OUT=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $5; exit}')
