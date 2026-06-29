@@ -183,14 +183,14 @@ def show_shutdown_dialog():
             "busctl",
             "--user",
             "call",
-            "org.gnome.Shell",
-            "/org/gnome/Shell",
-            "org.gnome.Shell",
-            "ShowShutdownDialog",
+            "org.gnome.SessionManager",
+            "/org/gnome/SessionManager",
+            "org.gnome.SessionManager",
+            "RequestShutdown",
         ]
     )
     if r.returncode != 0:
-        log.warning("ShowShutdownDialog failed: %s", r.stderr.strip())
+        log.warning("RequestShutdown failed: %s", r.stderr.strip())
         run_as_user(["gnome-session-quit", "--power-off"])
 
 
